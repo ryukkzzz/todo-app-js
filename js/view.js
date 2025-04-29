@@ -11,13 +11,13 @@ export default class View {
     this.addTodoForm = new AddTodo(); // Instancio el formulario de agregar tarea
     this.modal = new Modal(); // Instancio el modal para editar tareas
     this.filters = new Filters(); // Instancio los filtros de búsqueda
-    
+
     // Conecto el botón de agregar con el método addTodo
     this.addTodoForm.onClick((title, description) => this.addTodo(title, description));
-    
+
     // Conecto el botón del modal con el método editTodo
     this.modal.onClick((id, values) => this.editTodo(id, values));
-    
+
     // Conecto el botón de buscar con el método filter
     this.filters.onClick((filters) => this.filter(filters));
   }
@@ -25,6 +25,7 @@ export default class View {
   // Asocio el modelo a la vista para poder manipular los datos
   setModel(model) {
     this.model = model;
+    this.updatePendingCounter(); // Mostrar contador al asociar el modelo
   }
 
   // Pinto en pantalla todos los todos que estén guardados
@@ -67,11 +68,13 @@ export default class View {
   addTodo(title, description) {
     const todo = this.model.addTodo(title, description); // Primero la agrego en el modelo
     this.createRow(todo); // Luego la dibujo en la tabla
+    this.updatePendingCounter(); // Actualizar contador
   }
 
   // Alterno el estado de completado de una tarea
   toggleCompleted(id) {
-    this.model.toggleCompleted(id);
+    this.model.toggleCompleted(id); // Actualizo el estado en el modelo
+    this.updatePendingCounter(); // Actualizar contador
   }
 
   // Edito una tarea tanto en el modelo como en la tabla
@@ -87,11 +90,12 @@ export default class View {
   removeTodo(id) {
     this.model.removeTodo(id); // Borro en el modelo
     document.getElementById(id).remove(); // Borro la fila de la tabla
+    this.updatePendingCounter(); // Actualizar contador
   }
 
   // Creo una fila nueva en la tabla para representar un todo
   createRow(todo) {
-    const row = table.insertRow();
+    const row = this.table.insertRow(); // Corregido: this.table, no table
     row.setAttribute('id', todo.id); // Le pongo como id el id del todo
     row.innerHTML = `
       <td>${todo.title}</td>
@@ -127,5 +131,30 @@ export default class View {
     removeBtn.innerHTML = '<i class="fa fa-trash"></i>';
     removeBtn.onclick = () => this.removeTodo(todo.id);
     row.children[3].appendChild(removeBtn);
+  }
+
+  // Método para actualizar el contador de tareas pendientes
+  updatePendingCounter() {
+    if (!this.model) return; // Evitar error si el modelo aún no está asignado
+
+    const pendingTasks = this.model.getTodos().filter(todo => !todo.completed).length;
+    const counterElement = document.getElementById('pending-counter');
+
+    // Actualizar texto y color según la cantidad
+    counterElement.textContent = `Tienes ${pendingTasks} tarea${pendingTasks !== 1 ? 's' : ''} pendiente${pendingTasks !== 1 ? 's' : ''}`;
+
+    // Cambiar color si hay más tareas
+    if (pendingTasks > 10) {
+      counterElement.classList.remove('badge-info', 'badge-warning');
+      counterElement.classList.add('badge-danger'); // Rojo
+    } 
+    else if (pendingTasks > 5) {
+      counterElement.classList.remove('badge-info', 'badge-danger');
+      counterElement.classList.add('badge-warning'); // Amarillo
+    } 
+    else {
+      counterElement.classList.remove('badge-warning', 'badge-danger');
+      counterElement.classList.add('badge-info'); // Azul (default)
+    }
   }
 }
